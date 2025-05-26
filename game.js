@@ -1,142 +1,82 @@
-// ✅ 확장된 시뮬레이션 요소 구현: 스탯, 해고, 의뢰 성공률, 오후 훈련, 업그레이드
-
-let turn = 1;
-let gold = 500;
-let reputation = 50;
-let capacity = 3;
-let adventurers = [];
-let applicants = [];
-let questBoard = [];
-let activeQuests = [];
-let upgrades = { training: false, promotion: false };
-
-const jobPool = ["전사", "마법사", "도적", "농부", "성기사"];
-const races = ["엘프", "오크", "인간", "드워프"];
-
-function getRandomStat() {
-  return {
-    level: 1,
-    hp: 100,
-    atk: Math.floor(Math.random() * 10 + 10),
-    spd: Math.floor(Math.random() * 10 + 5),
-    skill: Math.random() > 0.7 ? "필살기" : null
-  };
-}
-
-function newAdventurer() {
-  return {
-    name: `모험가${Math.floor(Math.random() * 1000)}`,
-    race: races[Math.floor(Math.random() * races.length)],
-    job: jobPool[Math.floor(Math.random() * jobPool.length)],
-    ...getRandomStat(),
-  };
-}
-
-function startMorning() {
-  applicants = [];
-  const count = Math.floor(Math.random() * 3);
-  for (let i = 0; i < count; i++) applicants.push(newAdventurer());
-  console.log(`\n[🕘 오전] 새로운 지원자 수: ${applicants.length}`);
-  applicants.forEach((a, i) => {
-    console.log(`지원자${i + 1}: ${a.name} (${a.race} ${a.job}, 레벨 ${a.level}, HP ${a.hp})`);
-  });
-}
-
-function hire(index) {
-  if (adventurers.length >= capacity) return console.log("❌ 정원이 초과되어 고용할 수 없습니다.");
-  adventurers.push(applicants.splice(index, 1)[0]);
-  console.log("✅ 고용 완료.");
-}
-
-function fire(index) {
-  const adv = adventurers[index];
-  const cost = 50 + adv.level * 10;
-  gold -= cost;
-  reputation -= 5;
-  console.log(`❌ ${adv.name} 해고됨 (퇴직금 ${cost}G 지불, 평판 -5)`);
-  adventurers.splice(index, 1);
-}
-
-function startLunch() {
-  questBoard = [];
-  const count = Math.floor(Math.random() * 3 + 1);
-  for (let i = 0; i < count; i++) {
-    const difficulty = Math.floor(Math.random() * 3 + 1);
-    const reward = 100 + difficulty * 50;
-    const exp = 10 * difficulty;
-    const requiredLevel = difficulty;
-    questBoard.push({
-      title: `의뢰${turn}-${i + 1}`,
-      difficulty,
-      reward,
-      exp,
-      requiredLevel,
-      assigned: []
-    });
+// game.js (리팩토링된 인터페이스 기반)
+export default class GuildGame {
+  constructor(logCallback) {
+    this.day = 1;
+    this.gold = 500;
+    this.reputation = 0;
+    this.capacity = 3;
+    this.adventurers = [];
+    this.applicants = [];
+    this.quests = [];
+    this.log = logCallback;
   }
-  console.log(`\n[🍽 점심] 의뢰 등장: ${questBoard.length}개`);
-  questBoard.forEach((q, i) => {
-    console.log(`${i + 1}. ${q.title} (난이도 ${q.difficulty}, 보상 ${q.reward}G)`);
-  });
-}
 
-function assignAdventurerToQuest(questIndex, adventurerIndex) {
-  const quest = questBoard[questIndex];
-  const adv = adventurers[adventurerIndex];
-  if (!quest || !adv) return;
-  quest.assigned.push(adv);
-  console.log(`🧙‍♂️ ${adv.name} → ${quest.title} 배정 완료.`);
-}
-
-function startEvening() {
-  console.log("\n[☀️ 오후] 훈련 또는 업그레이드 시간");
-  // 단순 홍보: 평판 +10 / 업그레이드 시 정원 +1 (1회)
-  if (!upgrades.promotion) {
-    reputation += 10;
-    upgrades.promotion = true;
-    console.log("📢 홍보 실행 → 평판 +10");
+  nextDay() {
+    this.day++;
+    this.log(`=======================\n📆 [DAY ${this.day}]\n=======================`);
   }
-  if (!upgrades.training) {
-    capacity += 1;
-    upgrades.training = true;
-    console.log("🏠 숙소 확장 → 정원 +1");
-  }
-}
 
-function startNight() {
-  console.log("\n[🌙 밤] 의뢰 수행 결과");
-  for (const quest of questBoard) {
-    if (quest.assigned.length === 0) continue;
-    let teamLevel = quest.assigned.reduce((sum, a) => sum + a.level, 0);
-    let avgLevel = teamLevel / quest.assigned.length;
-    let successRate = 60 + (avgLevel - quest.requiredLevel) * 15;
-    const success = Math.random() * 100 < successRate;
+  handleMorning() {
+    const newApplicants = Math.floor(Math.random() * 2);
+    this.log(`\n[🕘 MORNING] New applicants: ${newApplicants}`);
+    this.applicants = [];
 
-    if (success) {
-      gold += quest.reward;
-      quest.assigned.forEach(a => a.level++);
-      reputation += 3;
-      console.log(`🎯 ${quest.title}: 성공! 보상 ${quest.reward}G, 팀원 레벨 +1`);
-    } else {
-      quest.assigned.forEach(a => (a.hp -= 30));
-      reputation -= 5;
-      console.log(`💀 ${quest.title}: 실패. 팀원 HP -30, 평판 -5`);
+    for (let i = 0; i < newApplicants; i++) {
+      const name = `Adventurer${Math.floor(Math.random() * 1000)}`;
+      const race = this.getRandom(["Human", "Elf", "Orc", "Dwarf"]);
+      const job = this.getRandom(["Knight", "Mage", "Priest", "Farmer"]);
+      const hp = 100;
+      const adventurer = { name, race, job, level: 1, hp };
+      this.applicants.push(adventurer);
+      this.log(`Applicant${i + 1}: ${name} (${race} ${job}, Lv1, HP ${hp})`);
     }
   }
-}
 
-function nextTurn() {
-  console.log(`\n=======================\n📆 [DAY ${turn}]\n=======================`);
-  startMorning();
-  startLunch();
-  startEvening();
-  startNight();
-  turn++;
-}
+  handleLunch() {
+    const questCount = 1 + Math.floor(Math.random() * 3);
+    this.log(`\n[🍽 LUNCH] Quests Available: ${questCount}`);
+    this.quests = [];
 
-// 테스트 실행
-testGame();
-function testGame() {
-  for (let i = 0; i < 3; i++) nextTurn();
-  console.log("\n💼 최종 길드 상태:", { gold, reputation, capacity, 모험가수: adventurers.length });
+    for (let i = 0; i < questCount; i++) {
+      const difficulty = 1 + Math.floor(Math.random() * 3);
+      const reward = 150 + difficulty * 50;
+      const quest = { id: `Q${this.day}-${i + 1}`, difficulty, reward };
+      this.quests.push(quest);
+      this.log(`${i + 1}. ${quest.id} (Lv${difficulty}, 💰 ${reward}G)`);
+    }
+  }
+
+  handleAfternoon() {
+    this.log(`\n[☀️ AFTERNOON] Upgrade options:`);
+    this.log(`1. Promote (+10 reputation)`);
+    this.log(`2. Expand Dormitory (+1 capacity)`);
+
+    // 예시 처리 (모두 실행)
+    this.reputation += 10;
+    this.capacity += 1;
+    this.log(`📢 Promotion → Reputation +10`);
+    this.log(`🏠 Dormitory expanded → Capacity +1`);
+  }
+
+  handleNight() {
+    this.log(`\n[🌙 NIGHT] Quest results`);
+    this.quests.forEach((quest, i) => {
+      const success = Math.random() < 0.8; // 80% 성공률
+      if (success) {
+        this.gold += quest.reward;
+        this.reputation += quest.difficulty * 2;
+        this.log(`✅ ${quest.id} succeeded! +${quest.reward}G, +${quest.difficulty * 2} reputation`);
+      } else {
+        this.log(`❌ ${quest.id} failed. No reward.`);
+      }
+    });
+
+    this.log("\n💼 Final Guild Status:");
+    this.log(`Gold: ${this.gold}, Reputation: ${this.reputation}, Capacity: ${this.capacity}, Adventurers: ${this.adventurers.length}`);
+    this.nextDay();
+  }
+
+  getRandom(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
 }
