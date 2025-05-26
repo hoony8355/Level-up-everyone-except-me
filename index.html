@@ -3,115 +3,119 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>나 빼고 다 레벨업 - 길드 시뮬레이션</title>
+  <title>나 빼고 다 레벨업 - 경영 타이쿤</title>
   <style>
-    :root {
-      --bg: #f4f4f4;
-      --card: #fff;
-      --accent: #3f51b5;
-    }
-    * { box-sizing: border-box; }
     body {
+      font-family: 'Segoe UI', sans-serif;
       margin: 0;
       padding: 1rem;
-      font-family: 'Segoe UI', sans-serif;
-      background: var(--bg);
-      color: #333;
-    }
-    header {
-      text-align: center;
-      margin-bottom: 1rem;
+      background: #f0f0f0;
     }
     h1 {
-      margin: 0.2rem 0;
-      font-size: 1.8rem;
-    }
-    .status-bar {
-      display: flex;
-      justify-content: space-around;
-      background: var(--card);
-      border-radius: 8px;
-      padding: 0.5rem;
-      margin-bottom: 1rem;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      text-align: center;
     }
     .section {
-      background: var(--card);
-      border-radius: 10px;
+      display: none;
+      max-width: 720px;
+      margin: 1rem auto;
+      background: white;
       padding: 1rem;
-      margin-bottom: 1rem;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
-    .section h2 {
-      margin-top: 0;
-      font-size: 1.2rem;
-      color: var(--accent);
+    .visible {
+      display: block;
+    }
+    .log {
+      background: #eee;
+      padding: 0.5rem;
+      border-radius: 6px;
+      max-height: 200px;
+      overflow-y: auto;
+      font-size: 0.9em;
     }
     button {
-      padding: 0.5rem 1rem;
-      margin: 0.3rem;
-      font-size: 1rem;
+      padding: 0.6rem 1.2rem;
       border: none;
-      border-radius: 5px;
-      background: var(--accent);
-      color: #fff;
+      border-radius: 6px;
+      background: #333;
+      color: white;
+      font-size: 1rem;
+      margin-top: 1rem;
       cursor: pointer;
     }
     button:hover {
-      background: #2c3e8f;
-    }
-    .log-box {
-      max-height: 150px;
-      overflow-y: auto;
-      background: #eee;
-      padding: 0.5rem;
-      font-size: 0.9rem;
-      border-radius: 6px;
-    }
-    @media (max-width: 600px) {
-      h1 { font-size: 1.3rem; }
-      .status-bar { flex-direction: column; align-items: center; }
+      background: #555;
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>👥 나 빼고 다 레벨업</h1>
-    <p>길드를 얼마나 오래 유지할 수 있을까?</p>
-  </header>
+  <h1>🏰 나 빼고 다 레벨업</h1>
 
-  <div class="status-bar">
-    <div>Day: <span id="day">1</span></div>
-    <div>Gold: <span id="gold">100</span></div>
-    <div>Reputation: <span id="reputation">0</span></div>
-    <div>Capacity: <span id="capacity">3</span></div>
+  <div class="section visible" id="section-morning">
+    <h2>🕘 오전</h2>
+    <div id="log-morning" class="log"></div>
+    <button onclick="nextPhase('lunch')">👉 점심 시간으로 넘어갈까요?</button>
   </div>
 
-  <div class="section">
-    <h2>🤝 오전 - 모험가 지원</h2>
-    <button onclick="game.advanceMorning()">지원자 받기</button>
-    <div id="recruitList"></div>
+  <div class="section" id="section-lunch">
+    <h2>🍽 점심</h2>
+    <div id="log-lunch" class="log"></div>
+    <button onclick="nextPhase('afternoon')">👉 오후 시간으로 넘어갈까요?</button>
   </div>
 
-  <div class="section">
-    <h2>✅ 점심 - 의뢰 처리</h2>
-    <button onclick="game.advanceAfternoon()">의뢰 배정</button>
-    <div id="questList"></div>
+  <div class="section" id="section-afternoon">
+    <h2>☀️ 오후</h2>
+    <div id="log-afternoon" class="log"></div>
+    <button onclick="nextPhase('night')">👉 밤 시간으로 넘어갈까요?</button>
   </div>
 
-  <div class="section">
-    <h2>🏋 오후 - 길드 운영</h2>
-    <button onclick="game.upgradeCapacity()">회원 수집 증상 (50G)</button>
-    <button onclick="game.promoteGuild()">호구/광고 (30G)</button>
-    <div>보유 모험가: <ul id="adventurerList"></ul></div>
+  <div class="section" id="section-night">
+    <h2>🌙 밤</h2>
+    <div id="log-night" class="log"></div>
+    <button onclick="nextDay()">🌅 다음 날로 진행</button>
   </div>
 
-  <div class="section">
-    <h2>🌜 밤 - 결과 발표</h2>
-    <button onclick="game.advanceNight()">의뢰 결과 확인</button>
-    <div class="log-box" id="logBox"></div>
-  </div>
+  <script type="module">
+    import game from './game.js';
 
-  <script type="module" src="./game.js"></script>
+    const sections = ['morning', 'lunch', 'afternoon', 'night'];
+    let currentPhaseIndex = 0;
+
+    function showSection(id) {
+      sections.forEach(s => {
+        document.getElementById(`section-${s}`).classList.remove('visible');
+      });
+      document.getElementById(`section-${id}`).classList.add('visible');
+    }
+
+    function nextPhase(next) {
+      const logId = `log-${sections[currentPhaseIndex]}`;
+      const output = document.getElementById(logId);
+      const log = game[`handle${capitalize(sections[currentPhaseIndex])}`]();
+      output.innerText = log.join('\n');
+      currentPhaseIndex++;
+      showSection(next);
+    }
+
+    function nextDay() {
+      const logId = `log-${sections[currentPhaseIndex]}`;
+      const output = document.getElementById(logId);
+      const log = game.handleNight();
+      output.innerText = log.join('\n');
+      currentPhaseIndex = 0;
+      game.nextDay();
+      showSection(sections[0]);
+    }
+
+    function capitalize(str) {
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    // 첫 화면
+    showSection('morning');
+    window.nextPhase = nextPhase;
+    window.nextDay = nextDay;
+  </script>
 </body>
 </html>
