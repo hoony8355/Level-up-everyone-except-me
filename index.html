@@ -3,119 +3,99 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>나 빼고 다 레벨업 - 경영 타이쿤</title>
+  <title>나 빼고 다 레벨업</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
-      margin: 0;
       padding: 1rem;
-      background: #f0f0f0;
+      max-width: 800px;
+      margin: auto;
+      background-color: #f4f4f4;
     }
     h1 {
       text-align: center;
     }
-    .section {
-      display: none;
-      max-width: 720px;
-      margin: 1rem auto;
-      background: white;
+    #log {
+      background: #fff;
       padding: 1rem;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    .visible {
-      display: block;
-    }
-    .log {
-      background: #eee;
-      padding: 0.5rem;
-      border-radius: 6px;
-      max-height: 200px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      height: 300px;
       overflow-y: auto;
-      font-size: 0.9em;
+      white-space: pre-wrap;
     }
-    button {
-      padding: 0.6rem 1.2rem;
-      border: none;
-      border-radius: 6px;
-      background: #333;
-      color: white;
-      font-size: 1rem;
+    .controls {
+      display: flex;
+      justify-content: space-around;
       margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+    .controls button {
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      margin: 0.5rem;
+      border: none;
+      border-radius: 5px;
+      background-color: #3c8dbc;
+      color: white;
       cursor: pointer;
     }
-    button:hover {
-      background: #555;
+    .controls button:disabled {
+      background-color: #aaa;
     }
   </style>
 </head>
 <body>
-  <h1>🏰 나 빼고 다 레벨업</h1>
+  <h1>나 빼고 다 레벨업 - 길드 운영 시뮬레이션</h1>
 
-  <div class="section visible" id="section-morning">
-    <h2>🕘 오전</h2>
-    <div id="log-morning" class="log"></div>
-    <button onclick="nextPhase('lunch')">👉 점심 시간으로 넘어갈까요?</button>
-  </div>
+  <div id="log"></div>
 
-  <div class="section" id="section-lunch">
-    <h2>🍽 점심</h2>
-    <div id="log-lunch" class="log"></div>
-    <button onclick="nextPhase('afternoon')">👉 오후 시간으로 넘어갈까요?</button>
-  </div>
-
-  <div class="section" id="section-afternoon">
-    <h2>☀️ 오후</h2>
-    <div id="log-afternoon" class="log"></div>
-    <button onclick="nextPhase('night')">👉 밤 시간으로 넘어갈까요?</button>
-  </div>
-
-  <div class="section" id="section-night">
-    <h2>🌙 밤</h2>
-    <div id="log-night" class="log"></div>
-    <button onclick="nextDay()">🌅 다음 날로 진행</button>
+  <div class="controls">
+    <button id="morningBtn">☀️ 아침 시작</button>
+    <button id="lunchBtn" disabled>🍽 점심 행동</button>
+    <button id="afternoonBtn" disabled>🌞 오후 행동</button>
+    <button id="nightBtn" disabled>🌙 밤 결과</button>
   </div>
 
   <script type="module">
-    import game from './game.js';
+    import { GuildGame } from './game.js';
 
-    const sections = ['morning', 'lunch', 'afternoon', 'night'];
-    let currentPhaseIndex = 0;
+    const logElement = document.getElementById('log');
+    const morningBtn = document.getElementById('morningBtn');
+    const lunchBtn = document.getElementById('lunchBtn');
+    const afternoonBtn = document.getElementById('afternoonBtn');
+    const nightBtn = document.getElementById('nightBtn');
 
-    function showSection(id) {
-      sections.forEach(s => {
-        document.getElementById(`section-${s}`).classList.remove('visible');
-      });
-      document.getElementById(`section-${id}`).classList.add('visible');
-    }
+    const log = (message) => {
+      logElement.textContent += `\n${message}`;
+      logElement.scrollTop = logElement.scrollHeight;
+    };
 
-    function nextPhase(next) {
-      const logId = `log-${sections[currentPhaseIndex]}`;
-      const output = document.getElementById(logId);
-      const log = game[`handle${capitalize(sections[currentPhaseIndex])}`]();
-      output.innerText = log.join('\n');
-      currentPhaseIndex++;
-      showSection(next);
-    }
+    const game = new GuildGame(log);
 
-    function nextDay() {
-      const logId = `log-${sections[currentPhaseIndex]}`;
-      const output = document.getElementById(logId);
-      const log = game.handleNight();
-      output.innerText = log.join('\n');
-      currentPhaseIndex = 0;
-      game.nextDay();
-      showSection(sections[0]);
-    }
+    morningBtn.addEventListener('click', () => {
+      game.handleMorning();
+      morningBtn.disabled = true;
+      lunchBtn.disabled = false;
+    });
 
-    function capitalize(str) {
-      return str.charAt(0).toUpperCase() + str.slice(1);
-    }
+    lunchBtn.addEventListener('click', () => {
+      game.handleLunch();
+      lunchBtn.disabled = true;
+      afternoonBtn.disabled = false;
+    });
 
-    // 첫 화면
-    showSection('morning');
-    window.nextPhase = nextPhase;
-    window.nextDay = nextDay;
+    afternoonBtn.addEventListener('click', () => {
+      game.handleAfternoon();
+      afternoonBtn.disabled = true;
+      nightBtn.disabled = false;
+    });
+
+    nightBtn.addEventListener('click', () => {
+      game.handleNight();
+      nightBtn.disabled = true;
+      morningBtn.disabled = false;
+    });
   </script>
 </body>
 </html>
